@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Data Show</title>
+  <style>
+    body { font-family: sans-serif; padding: 20px; background: #f9f9f9; }
+    pre { background: #fff; padding: 15px; border-radius: 6px; overflow-x: auto; }
+  </style>
+</head>
+<body>
+  <h1>数据展示</h1>
+  <div id="content">加载中...</div>
+  <script>
+    fetch('data.json')
+      .then(res => {
+        if (!res.ok) throw new Error('加载失败: ' + res.status);
+        return res.json();
+      })
+      .then(data => {
+        document.getElementById('content').innerHTML =
+          '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+      })
+      .catch(err => {
+        document.getElementById('content').textContent = err.message;
+      });
+  </script>
+</body>
+</html>
