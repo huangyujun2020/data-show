@@ -3,28 +3,64 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Data Show</title>
+  <title>数据看板</title>
   <style>
-    body { font-family: sans-serif; padding: 20px; background: #f9f9f9; }
-    pre { background: #fff; padding: 15px; border-radius: 6px; overflow-x: auto; }
+    body { font-family: sans-serif; padding: 20px; background: #f4f6f8; color: #333; }
+    h1 { margin-bottom: 20px; }
+    .kpi-cards { display: flex; gap: 15px; margin-bottom: 30px; flex-wrap: wrap; }
+    .card { background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); min-width: 180px; }
+    .card h3 { margin: 0 0 10px; font-size: 14px; color: #888; }
+    .card p { margin: 0; font-size: 24px; font-weight: bold; color: #2c3e50; }
+    table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+    th, td { padding: 12px 15px; border-bottom: 1px solid #eee; text-align: left; }
+    th { background: #fafafa; font-weight: bold; }
+    tr:last-child td { border-bottom: none; }
   </style>
 </head>
 <body>
   <h1>数据展示</h1>
-  <div id="content">加载中...</div>
+  
+  <!-- KPI 指标区 -->
+  <div class="kpi-cards" id="kpi"></div>
+  
+  <!-- 明细表格区 -->
+  <table id="table">
+    <thead>
+      <tr>
+        <th>日期</th><th>营收</th><th>成本</th><th>利润</th><th>分类</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
   <script>
     fetch('data.json')
-      .then(res => {
-        if (!res.ok) throw new Error('加载失败: ' + res.status);
-        return res.json();
-      })
+      .then(res => res.json())
       .then(data => {
-        document.getElementById('content').innerHTML =
-          '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+        // 渲染 KPI
+        const kpi = data.kpi;
+        document.getElementById('kpi').innerHTML = `
+          <div class="card"><h3>总营收</h3><p>${kpi.total_rev}</p></div>
+          <div class="card"><h3>总成本</h3><p>${kpi.total_cost}</p></div>
+          <div class="card"><h3>利润率</h3><p>${kpi.profit_rate}%</p></div>
+          <div class="card"><h3>总订单数</h3><p>${kpi.total_orders}</p></div>
+        `;
+        
+        // 渲染表格
+        const tbody = document.querySelector('#table tbody');
+        data.rows.forEach(row => {
+          tbody.innerHTML += `
+            <tr>
+              <td>${row['日期']}</td>
+              <td>${row['营收']}</td>
+              <td>${row['成本']}</td>
+              <td>${row['利润']}</td>
+              <td>${row['分类']}</td>
+            </tr>
+          `;
+        });
       })
-      .catch(err => {
-        document.getElementById('content').textContent = err.message;
-      });
+      .catch(err => console.error('加载失败', err));
   </script>
 </body>
 </html>
