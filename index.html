@@ -1,66 +1,633 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>数据看板</title>
-  <style>
-    body { font-family: sans-serif; padding: 20px; background: #f4f6f8; color: #333; }
-    h1 { margin-bottom: 20px; }
-    .kpi-cards { display: flex; gap: 15px; margin-bottom: 30px; flex-wrap: wrap; }
-    .card { background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); min-width: 180px; }
-    .card h3 { margin: 0 0 10px; font-size: 14px; color: #888; }
-    .card p { margin: 0; font-size: 24px; font-weight: bold; color: #2c3e50; }
-    table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-    th, td { padding: 12px 15px; border-bottom: 1px solid #eee; text-align: left; }
-    th { background: #fafafa; font-weight: bold; }
-    tr:last-child td { border-bottom: none; }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>指数估值百分位</title>
+<style>
+  :root{
+    --bg:#0f1115; --card:#171a21; --line:#2a2f3a;
+    --txt:#e6e8ee; --sub:#9aa3b2;
+    --low:#22c55e; --mid:#f59e0b; --high:#ef4444;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; padding:24px 16px 60px;
+    background:var(--bg); color:var(--txt);
+    font-family:"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1180px;margin:0 auto;}
+  h1{font-size:22px;margin:0 0 6px;letter-spacing:.5px;}
+  .desc{color:var(--sub);font-size:13px;margin-bottom:8px;line-height:1.6;}
+  .legend{display:flex;gap:18px;flex-wrap:wrap;font-size:13px;color:var(--sub);margin-bottom:28px;}
+  .legend span::before{content:"●";margin-right:6px;}
+  .legend .l-low::before{color:var(--low);}
+  .legend .l-mid::before{color:var(--mid);}
+  .legend .l-high::before{color:var(--high);}
+
+  .card{
+    background:var(--card); border:1px solid var(--line);
+    border-radius:14px; overflow:hidden; margin-bottom:28px;
+    box-shadow:0 6px 24px rgba(0,0,0,.25);
+  }
+  .card-head{
+    padding:16px 20px 6px;
+    font-size:18px; font-weight:600;
+  }
+  .idx-code{color:#7dd3fc;margin-right:10px;font-variant-numeric:tabular-nums;}
+  .idx-name{color:var(--txt);}
+  .card-meta{
+    padding:0 20px 14px; font-size:12.5px; color:var(--sub);
+    display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+  }
+  .card-meta .sep{opacity:.4;}
+  .card-meta .updated{margin-left:auto;opacity:.55;}
+
+  .table-wrap{overflow-x:auto;}
+  table{width:100%;border-collapse:collapse;font-size:13.5px;min-width:760px;}
+  th,td{padding:11px 12px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap;}
+  th{
+    background:#1d222b; color:var(--sub); font-weight:600;
+    font-size:12.5px;
+  }
+  th:first-child, td:first-child{text-align:left;}
+  tbody tr:hover{background:rgba(255,255,255,.03);}
+  td.cur{font-weight:700;color:#f8fafc;}
+  td.metric{color:#cbd5e1;font-weight:500;}
+  td.start{color:var(--sub);font-size:12px;}
+
+  .cell{padding:11px 12px;font-variant-numeric:tabular-nums;}
+  .cell .num{margin-right:4px;}
+  .cell .st{font-size:11px;opacity:.9;}
+  .cell.低估{color:var(--low);font-weight:700;}
+  .cell.正常{color:var(--mid);}
+  .cell.高估{color:var(--high);font-weight:700;}
+  .cell.na{color:#5b6472;}
+
+  .row-低估 td.metric{box-shadow:inset 3px 0 0 var(--low);}
+  .row-正常 td.metric{box-shadow:inset 3px 0 0 var(--mid);}
+  .row-高估 td.metric{box-shadow:inset 3px 0 0 var(--high);}
+
+  .foot{text-align:center;color:var(--sub);font-size:12px;margin-top:30px;line-height:1.7;}
+  .foot b{color:#cbd5e1;}
+
+  @media (max-width:760px){
+    th,td{padding:9px 8px;font-size:12px;}
+    .card-head{font-size:16px;}
+    .cell .st{display:inline-block;min-width:28px;}
+  }
+</style>
 </head>
 <body>
-  <h1>数据展示</h1>
-  
-  <!-- KPI 指标区 -->
-  <div class="kpi-cards" id="kpi"></div>
-  
-  <!-- 明细表格区 -->
-  <table id="table">
-    <thead>
-      <tr>
-        <th>日期</th><th>营收</th><th>成本</th><th>利润</th><th>分类</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
+<div class="wrap">
+  <h1>📊 指数估值百分位</h1>
+  <div class="desc">
+    百分位 = 当前估值在历史窗口中处于较低位置的比例。<b>越低越便宜</b>。
+  </div>
+  <div class="legend">
+    <span class="l-low">低估（≤30%，PE/PB/PS 越便宜；股息率越高越便宜）</span>
+    <span class="l-mid">正常（30%–70%）</span>
+    <span class="l-high">高估（≥70%）</span>
+  </div>
 
-  <script>
-    fetch('data.json')
-      .then(res => res.json())
-      .then(data => {
-        // 渲染 KPI
-        const kpi = data.kpi;
-        document.getElementById('kpi').innerHTML = `
-          <div class="card"><h3>总营收</h3><p>${kpi.total_rev}</p></div>
-          <div class="card"><h3>总成本</h3><p>${kpi.total_cost}</p></div>
-          <div class="card"><h3>利润率</h3><p>${kpi.profit_rate}%</p></div>
-          <div class="card"><h3>总订单数</h3><p>${kpi.total_orders}</p></div>
-        `;
+  
+        <div class="card">
+          <div class="card-head">
+            <span class="idx-code">000300.SH</span>
+            <span class="idx-name">沪深300</span>
+          </div>
+          <div class="card-meta">
+            <span>成分起点：<b>20050429</b></span>
+            <span class="sep">|</span>
+            <span>最新日期：<b>20260930</b></span>
+            <span class="updated">生成于 2026-10-04 20:14:53</span>
+          </div>
         
-        // 渲染表格
-        const tbody = document.querySelector('#table tbody');
-        data.rows.forEach(row => {
-          tbody.innerHTML += `
-            <tr>
-              <td>${row['日期']}</td>
-              <td>${row['营收']}</td>
-              <td>${row['成本']}</td>
-              <td>${row['利润']}</td>
-              <td>${row['分类']}</td>
-            </tr>
-          `;
-        });
-      })
-      .catch(err => console.error('加载失败', err));
-  </script>
+
+          <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>指标</th><th>当前值</th><th>5年(%)</th><th>10年(%)</th><th>15年(%)</th><th>20年(%)</th><th>全历史(%)</th><th>起点</th></tr>
+            </thead>
+            <tbody>
+        
+
+              <tr class="row-正常">
+                <td class="metric">市盈率PE-TTM</td>
+                <td class="cur">13.21</td>
+                <td class="cell 正常"><span class="num">65.1</span><span class="st">正常</span></td><td class="cell 高估"><span class="num">70.1</span><span class="st">高估</span></td><td class="cell 高估"><span class="num">73.8</span><span class="st">高估</span></td><td class="cell na">—</td><td class="cell 正常"><span class="num">69.7</span><span class="st">正常</span></td>
+                <td class="start">20100129</td>
+              </tr>
+            
+
+              <tr class="row-低估">
+                <td class="metric">市净率PB</td>
+                <td class="cur">1.29</td>
+                <td class="cell 正常"><span class="num">53.6</span><span class="st">正常</span></td><td class="cell 正常"><span class="num">36.2</span><span class="st">正常</span></td><td class="cell 正常"><span class="num">30.2</span><span class="st">正常</span></td><td class="cell na">—</td><td class="cell 低估"><span class="num">28.4</span><span class="st">低估</span></td>
+                <td class="start">20091231</td>
+              </tr>
+            
+
+              <tr class="row-高估">
+                <td class="metric">市销率PS</td>
+                <td class="cur">0.61</td>
+                <td class="cell 高估"><span class="num">70.0</span><span class="st">高估</span></td><td class="cell 高估"><span class="num">82.5</span><span class="st">高估</span></td><td class="cell 高估"><span class="num">83.5</span><span class="st">高估</span></td><td class="cell na">—</td><td class="cell 高估"><span class="num">78.5</span><span class="st">高估</span></td>
+                <td class="start">20091231</td>
+              </tr>
+            
+
+              <tr class="row-正常">
+                <td class="metric">股息率</td>
+                <td class="cur">2.80%</td>
+                <td class="cell 正常"><span class="num">43.1</span><span class="st">正常</span></td><td class="cell 正常"><span class="num">57.3</span><span class="st">正常</span></td><td class="cell 正常"><span class="num">52.6</span><span class="st">正常</span></td><td class="cell 正常"><span class="num">62.4</span><span class="st">正常</span></td><td class="cell 正常"><span class="num">60.9</span><span class="st">正常</span></td>
+                <td class="start">20050429</td>
+              </tr>
+            
+
+            </tbody>
+          </table>
+          </div>
+        </div>
+        
+
+        <div class="card">
+          <div class="card-head">
+            <span class="idx-code">000688.SH</span>
+            <span class="idx-name">科创50</span>
+          </div>
+          <div class="card-meta">
+            <span>成分起点：<b>20200731</b></span>
+            <span class="sep">|</span>
+            <span>最新日期：<b>20260930</b></span>
+            <span class="updated">生成于 2026-10-04 20:14:53</span>
+          </div>
+        
+
+          <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>指标</th><th>当前值</th><th>5年(%)</th><th>10年(%)</th><th>15年(%)</th><th>20年(%)</th><th>全历史(%)</th><th>起点</th></tr>
+            </thead>
+            <tbody>
+        
+
+              <tr class="row-高估">
+                <td class="metric">市盈率PE-TTM</td>
+                <td class="cur">130.29</td>
+                <td class="cell 高估"><span class="num">75.0</span><span class="st">高估</span></td><td class="cell na">—</td><td class="cell na">—</td><td class="cell na">—</td><td class="cell 高估"><span class="num">76.7</span><span class="st">高估</span></td>
+                <td class="start">20200731</td>
+              </tr>
+            
+
+              <tr class="row-高估">
+                <td class="metric">市净率PB</td>
+                <td class="cur">7.04</td>
+                <td class="cell 高估"><span class="num">88.4</span><span class="st">高估</span></td><td class="cell na">—</td><td class="cell na">—</td><td class="cell na">—</td><td class="cell 高估"><span class="num">82.6</span><span class="st">高估</span></td>
+                <td class="start">20200731</td>
+              </tr>
+            
+
+              <tr class="row-高估">
+                <td class="metric">市销率PS</td>
+                <td class="cur">3.86</td>
+                <td class="cell 高估"><span class="num">80.3</span><span class="st">高估</span></td><td class="cell na">—</td><td class="cell na">—</td><td class="cell na">—</td><td class="cell 高估"><span class="num">74.7</span><span class="st">高估</span></td>
+                <td class="start">20200731</td>
+              </tr>
+            
+
+              <tr class="row-高估">
+                <td class="metric">股息率</td>
+                <td class="cur">0.24%</td>
+                <td class="cell 高估"><span class="num">5.4</span><span class="st">高估</span></td><td class="cell na">—</td><td class="cell na">—</td><td class="cell na">—</td><td class="cell 高估"><span class="num">5.0</span><span class="st">高估</span></td>
+                <td class="start">20200731</td>
+              </tr>
+            
+
+            </tbody>
+          </table>
+          </div>
+        </div>
+        
+
+        <div class="card">
+          <div class="card-head">
+            <span class="idx-code">000852.SH</span>
+            <span class="idx-name">中证1000</span>
+          </div>
+          <div class="card-meta">
+            <span>成分起点：<b>20141031</b></span>
+            <span class="sep">|</span>
+            <span>最新日期：<b>20260930</b></span>
+            <span class="updated">生成于 2026-10-04 20:14:53</span>
+          </div>
+        
+
+          <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>指标</th><th>当前值</th><th>5年(%)</th><th>10年(%)</th><th>15年(%)</th><th>20年(%)</th><th>全历史(%)</th><th>起点</th></tr>
+            </thead>
+            <tbody>
+        
+
+              <tr class="row-正常">
+                <td class="metric">市盈率PE-TTM</td>
+                <td class="cur">41.96</td>
+                <td class="cell 高估"><span class="num">73.3</span><span class="st">高估</span></td><td class="cell 正常"><span class="num">57.5</span><span class="st">正常</span></td><td class="cell na">—</td><td class="cell na">—</td><td class="cell 正常"><span class="num">51.9</span><span class="st">正常</span></td>
+                <td class="start">20141031</td>
+              </tr>
+            
+
+              <tr class="row-正常">
+                <td class="metric">市净率PB</td>
+                <td class="cur">2.26</td>
+                <td class="cell 正常"><span class="num">43.5</span><span class="st">正常</span></td><td class="cell 正常"><span class="num">38.0</span><span class="st">正常</span></td><td class="cell na">—</td><td class="cell na">—</td><td class="cell 正常"><span class="num">34.3</span><span class="st">正常</span></td>
+                <td class="start">20141031</td>
+              </tr>
+            
+
+              <tr class="row-正常">
+                <td class="metric">市销率PS</td>
+                <td class="cur">0.68</td>
+                <td class="cell 正常"><span class="num">64.2</span><span class="st">正常</span></td><td class="cell 正常"><span class="num">52.3</span><span class="st">正常</span></td><td class="cell na">—</td><td class="cell na">—</td><td class="cell 正常"><span class="num">47.2</span><span class="st">正常</span></td>
+                <td class="start">20141031</td>
+              </tr>
+            
+
+              <tr class="row-正常">
+                <td class="metric">股息率</td>
+                <td class="cur">1.12%</td>
+                <td class="cell 正常"><span class="num">45.3</span><span class="st">正常</span></td><td class="cell 正常"><span class="num">57.6</span><span class="st">正常</span></td><td class="cell na">—</td><td class="cell na">—</td><td class="cell 正常"><span class="num">61.8</span><span class="st">正常</span></td>
+                <td class="start">20141031</td>
+              </tr>
+            
+
+            </tbody>
+          </table>
+          </div>
+        </div>
+        
+
+        <div class="card">
+          <div class="card-head">
+            <span class="idx-code">000905.SH</span>
+            <span class="idx-name">中证500</span>
+          </div>
+          <div class="card-meta">
+            <span>成分起点：<b>20050131</b></span>
+            <span class="sep">|</span>
+            <span>最新日期：<b>20260930</b></span>
+            <span class="updated">生成于 2026-10-04 20:14:53</span>
+          </div>
+        
+
+          <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>指标</th><th>当前值</th><th>5年(%)</th><th>10年(%)</th><th>15年(%)</th><th>20年(%)</th><th>全历史(%)</th><th>起点</th></tr>
+            </thead>
+            <tbody>
+        
+
+              <tr class="row-正常">
+                <td class="metric">市盈率PE-TTM</td>
+                <td class="cur">31.81</td>
+                <td class="cell 高估"><span class="num">82.4</span><span class="st">高估</span></td><td class="cell 高估"><span class="num">74.1</span><span class="st">高估</span></td><td class="cell 高估"><span class="num">70.1</span><span class="st">高估</span></td><td class="cell na">—</td><td class="cell 正常"><span class="num">66.2</span><span class="st">正常</span></td>
+                <td class="start">20100129</td>
+              </tr>
+            
+
+              <tr class="row-正常">
+                <td class="metric">市净率PB</td>
+                <td class="cur">2.23</td>
+                <td class="cell 高估"><span class="num">87.4</span><span class="st">高估</span></td><td class="cell 高估"><span class="num">73.5</span><span class="st">高估</span></td><td class="cell 正常"><span class="num">59.8</span><span class="st">正常</span></td><td class="cell na">—</td><td class="cell 正常"><span class="num">56.2</span><span class="st">正常</span></td>
+                <td class="start">20091231</td>
+              </tr>
+            
+
+              <tr class="row-正常">
+                <td class="metric">市销率PS</td>
+                <td class="cur">0.67</td>
+                <td class="cell 高估"><span class="num">88.2</span><span class="st">高估</span></td><td class="cell 高估"><span class="num">76.0</span><span class="st">高估</span></td><td class="cell 高估"><span class="num">72.9</span><span class="st">高估</span></td><td class="cell na">—</td><td class="cell 正常"><span class="num">68.5</span><span class="st">正常</span></td>
+                <td class="start">20091231</td>
+              </tr>
+            
+
+              <tr class="row-正常">
+                <td class="metric">股息率</td>
+                <td class="cur">1.35%</td>
+                <td class="cell 高估"><span class="num">15.7</span><span class="st">高估</span></td><td class="cell 正常"><span class="num">37.9</span><span class="st">正常</span></td><td class="cell 正常"><span class="num">57.6</span><span class="st">正常</span></td><td class="cell 正常"><span class="num">66.0</span><span class="st">正常</span></td><td class="cell 正常"><span class="num">63.7</span><span class="st">正常</span></td>
+                <td class="start">20050131</td>
+              </tr>
+            
+
+            </tbody>
+          </table>
+          </div>
+        </div>
+        
+
+        <div class="card">
+          <div class="card-head">
+            <span class="idx-code">000906.SH</span>
+            <span class="idx-name">中证800</span>
+          </div>
+          <div class="card-meta">
+            <span>成分起点：<b>20050131</b></span>
+            <span class="sep">|</span>
+            <span>最新日期：<b>20260930</b></span>
+            <span class="updated">生成于 2026-10-04 20:14:53</span>
+          </div>
+        
+
+          <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>指标</th><th>当前值</th><th>5年(%)</th><th>10年(%)</th><th>15年(%)</th><th>20年(%)</th><th>全历史(%)</th><th>起点</th></tr>
+            </thead>
+            <tbody>
+        
+
+              <tr class="row-高估">
+                <td class="metric">市盈率PE-TTM</td>
+                <td class="cur">15.07</td>
+                <td class="cell 高估"><span class="num">72.2</span><span class="st">高估</span></td><td class="cell 高估"><span class="num">72.9</span><span class="st">高估</span></td><td class="cell 高估"><span class="num">76.0</span><span class="st">高估</span></td><td class="cell na">—</td><td class="cell 高估"><span class="num">71.8</span><span class="st">高估</span></td>
+                <td class="start">20100129</td>
+              </tr>
+            
+
+              <tr class="row-正常">
+                <td class="metric">市净率PB</td>
+                <td class="cur">1.41</td>
+                <td class="cell 正常"><span class="num">60.1</span><span class="st">正常</span></td><td class="cell 正常"><span class="num">45.6</span><span class="st">正常</span></td><td class="cell 正常"><span class="num">37.4</span><span class="st">正常</span></td><td class="cell na">—</td><td class="cell 正常"><span class="num">35.1</span><span class="st">正常</span></td>
+                <td class="start">20091231</td>
+              </tr>
+            
+
+              <tr class="row-高估">
+                <td class="metric">市销率PS</td>
+                <td class="cur">0.62</td>
+                <td class="cell 高估"><span class="num">80.2</span><span class="st">高估</span></td><td class="cell 高估"><span class="num">87.5</span><span class="st">高估</span></td><td class="cell 高估"><span class="num">86.2</span><span class="st">高估</span></td><td class="cell na">—</td><td class="cell 高估"><span class="num">81.1</span><span class="st">高估</span></td>
+                <td class="start">20091231</td>
+              </tr>
+            
+
+              <tr class="row-正常">
+                <td class="metric">股息率</td>
+                <td class="cur">2.49%</td>
+                <td class="cell 正常"><span class="num">37.8</span><span class="st">正常</span></td><td class="cell 正常"><span class="num">53.6</span><span class="st">正常</span></td><td class="cell 正常"><span class="num">49.7</span><span class="st">正常</span></td><td class="cell 正常"><span class="num">60.3</span><span class="st">正常</span></td><td class="cell 正常"><span class="num">59.1</span><span class="st">正常</span></td>
+                <td class="start">20050131</td>
+              </tr>
+            
+
+            </tbody>
+          </table>
+          </div>
+        </div>
+        
+
+        <div class="card">
+          <div class="card-head">
+            <span class="idx-code">000919.CSI</span>
+            <span class="idx-name">300价值</span>
+          </div>
+          <div class="card-meta">
+            <span>成分起点：<b>20090430</b></span>
+            <span class="sep">|</span>
+            <span>最新日期：<b>20260930</b></span>
+            <span class="updated">生成于 2026-10-04 20:14:53</span>
+          </div>
+        
+
+          <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>指标</th><th>当前值</th><th>5年(%)</th><th>10年(%)</th><th>15年(%)</th><th>20年(%)</th><th>全历史(%)</th><th>起点</th></tr>
+            </thead>
+            <tbody>
+        
+
+              <tr class="row-正常">
+                <td class="metric">市盈率PE-TTM</td>
+                <td class="cur">8.76</td>
+                <td class="cell 高估"><span class="num">79.2</span><span class="st">高估</span></td><td class="cell 正常"><span class="num">68.4</span><span class="st">正常</span></td><td class="cell 正常"><span class="num">63.5</span><span class="st">正常</span></td><td class="cell na">—</td><td class="cell 正常"><span class="num">60.5</span><span class="st">正常</span></td>
+                <td class="start">20100331</td>
+              </tr>
+            
+
+              <tr class="row-低估">
+                <td class="metric">市净率PB</td>
+                <td class="cur">0.83</td>
+                <td class="cell 高估"><span class="num">76.0</span><span class="st">高估</span></td><td class="cell 正常"><span class="num">46.3</span><span class="st">正常</span></td><td class="cell 正常"><span class="num">31.6</span><span class="st">正常</span></td><td class="cell na">—</td><td class="cell 低估"><span class="num">29.7</span><span class="st">低估</span></td>
+                <td class="start">20091231</td>
+              </tr>
+            
+
+              <tr class="row-高估">
+                <td class="metric">市销率PS</td>
+                <td class="cur">0.46</td>
+                <td class="cell 高估"><span class="num">96.5</span><span class="st">高估</span></td><td class="cell 高估"><span class="num">88.7</span><span class="st">高估</span></td><td class="cell 高估"><span class="num">84.9</span><span class="st">高估</span></td><td class="cell na">—</td><td class="cell 高估"><span class="num">79.8</span><span class="st">高估</span></td>
+                <td class="start">20091231</td>
+              </tr>
+            
+
+              <tr class="row-正常">
+                <td class="metric">股息率</td>
+                <td class="cur">3.92%</td>
+                <td class="cell 高估"><span class="num">13.6</span><span class="st">高估</span></td><td class="cell 正常"><span class="num">40.5</span><span class="st">正常</span></td><td class="cell 正常"><span class="num">47.0</span><span class="st">正常</span></td><td class="cell na">—</td><td class="cell 正常"><span class="num">52.1</span><span class="st">正常</span></td>
+                <td class="start">20090430</td>
+              </tr>
+            
+
+            </tbody>
+          </table>
+          </div>
+        </div>
+        
+
+        <div class="card">
+          <div class="card-head">
+            <span class="idx-code">000922.CSI</span>
+            <span class="idx-name">中证红利</span>
+          </div>
+          <div class="card-meta">
+            <span>成分起点：<b>20080530</b></span>
+            <span class="sep">|</span>
+            <span>最新日期：<b>20260930</b></span>
+            <span class="updated">生成于 2026-10-04 20:14:53</span>
+          </div>
+        
+
+          <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>指标</th><th>当前值</th><th>5年(%)</th><th>10年(%)</th><th>15年(%)</th><th>20年(%)</th><th>全历史(%)</th><th>起点</th></tr>
+            </thead>
+            <tbody>
+        
+
+              <tr class="row-正常">
+                <td class="metric">市盈率PE-TTM</td>
+                <td class="cur">8.69</td>
+                <td class="cell 高估"><span class="num">96.3</span><span class="st">高估</span></td><td class="cell 高估"><span class="num">83.8</span><span class="st">高估</span></td><td class="cell 高估"><span class="num">71.7</span><span class="st">高估</span></td><td class="cell na">—</td><td class="cell 正常"><span class="num">68.4</span><span class="st">正常</span></td>
+                <td class="start">20100331</td>
+              </tr>
+            
+
+              <tr class="row-正常">
+                <td class="metric">市净率PB</td>
+                <td class="cur">0.78</td>
+                <td class="cell 高估"><span class="num">94.5</span><span class="st">高估</span></td><td class="cell 正常"><span class="num">51.0</span><span class="st">正常</span></td><td class="cell 正常"><span class="num">34.9</span><span class="st">正常</span></td><td class="cell na">—</td><td class="cell 正常"><span class="num">32.8</span><span class="st">正常</span></td>
+                <td class="start">20091231</td>
+              </tr>
+            
+
+              <tr class="row-高估">
+                <td class="metric">市销率PS</td>
+                <td class="cur">0.52</td>
+                <td class="cell 高估"><span class="num">99.2</span><span class="st">高估</span></td><td class="cell 高估"><span class="num">91.1</span><span class="st">高估</span></td><td class="cell 高估"><span class="num">85.3</span><span class="st">高估</span></td><td class="cell na">—</td><td class="cell 高估"><span class="num">80.2</span><span class="st">高估</span></td>
+                <td class="start">20091231</td>
+              </tr>
+            
+
+              <tr class="row-正常">
+                <td class="metric">股息率</td>
+                <td class="cur">4.05%</td>
+                <td class="cell 高估"><span class="num">0.5</span><span class="st">高估</span></td><td class="cell 高估"><span class="num">17.4</span><span class="st">高估</span></td><td class="cell 高估"><span class="num">27.4</span><span class="st">高估</span></td><td class="cell na">—</td><td class="cell 正常"><span class="num">36.1</span><span class="st">正常</span></td>
+                <td class="start">20080530</td>
+              </tr>
+            
+
+            </tbody>
+          </table>
+          </div>
+        </div>
+        
+
+        <div class="card">
+          <div class="card-head">
+            <span class="idx-code">000985.CSI</span>
+            <span class="idx-name">中证全指</span>
+          </div>
+          <div class="card-meta">
+            <span>成分起点：<b>20110831</b></span>
+            <span class="sep">|</span>
+            <span>最新日期：<b>20260930</b></span>
+            <span class="updated">生成于 2026-10-04 20:14:53</span>
+          </div>
+        
+
+          <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>指标</th><th>当前值</th><th>5年(%)</th><th>10年(%)</th><th>15年(%)</th><th>20年(%)</th><th>全历史(%)</th><th>起点</th></tr>
+            </thead>
+            <tbody>
+        
+
+              <tr class="row-高估">
+                <td class="metric">市盈率PE-TTM</td>
+                <td class="cur">19.73</td>
+                <td class="cell 高估"><span class="num">76.6</span><span class="st">高估</span></td><td class="cell 高估"><span class="num">79.0</span><span class="st">高估</span></td><td class="cell 高估"><span class="num">81.8</span><span class="st">高估</span></td><td class="cell na">—</td><td class="cell 高估"><span class="num">81.8</span><span class="st">高估</span></td>
+                <td class="start">20110831</td>
+              </tr>
+            
+
+              <tr class="row-正常">
+                <td class="metric">市净率PB</td>
+                <td class="cur">1.60</td>
+                <td class="cell 正常"><span class="num">59.2</span><span class="st">正常</span></td><td class="cell 正常"><span class="num">47.1</span><span class="st">正常</span></td><td class="cell 正常"><span class="num">42.3</span><span class="st">正常</span></td><td class="cell na">—</td><td class="cell 正常"><span class="num">42.3</span><span class="st">正常</span></td>
+                <td class="start">20110831</td>
+              </tr>
+            
+
+              <tr class="row-高估">
+                <td class="metric">市销率PS</td>
+                <td class="cur">0.65</td>
+                <td class="cell 高估"><span class="num">74.3</span><span class="st">高估</span></td><td class="cell 高估"><span class="num">71.2</span><span class="st">高估</span></td><td class="cell 高估"><span class="num">75.4</span><span class="st">高估</span></td><td class="cell na">—</td><td class="cell 高估"><span class="num">75.4</span><span class="st">高估</span></td>
+                <td class="start">20110831</td>
+              </tr>
+            
+
+              <tr class="row-正常">
+                <td class="metric">股息率</td>
+                <td class="cur">2.06%</td>
+                <td class="cell 正常"><span class="num">38.1</span><span class="st">正常</span></td><td class="cell 正常"><span class="num">50.6</span><span class="st">正常</span></td><td class="cell 正常"><span class="num">44.4</span><span class="st">正常</span></td><td class="cell na">—</td><td class="cell 正常"><span class="num">44.4</span><span class="st">正常</span></td>
+                <td class="start">20110831</td>
+              </tr>
+            
+
+            </tbody>
+          </table>
+          </div>
+        </div>
+        
+
+        <div class="card">
+          <div class="card-head">
+            <span class="idx-code">399006.SZ</span>
+            <span class="idx-name">创业板指</span>
+          </div>
+          <div class="card-meta">
+            <span>成分起点：<b>20100630</b></span>
+            <span class="sep">|</span>
+            <span>最新日期：<b>20260930</b></span>
+            <span class="updated">生成于 2026-10-04 20:14:53</span>
+          </div>
+        
+
+          <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>指标</th><th>当前值</th><th>5年(%)</th><th>10年(%)</th><th>15年(%)</th><th>20年(%)</th><th>全历史(%)</th><th>起点</th></tr>
+            </thead>
+            <tbody>
+        
+
+              <tr class="row-低估">
+                <td class="metric">市盈率PE-TTM</td>
+                <td class="cur">35.83</td>
+                <td class="cell 正常"><span class="num">42.2</span><span class="st">正常</span></td><td class="cell 低估"><span class="num">28.7</span><span class="st">低估</span></td><td class="cell 低估"><span class="num">23.8</span><span class="st">低估</span></td><td class="cell na">—</td><td class="cell 低估"><span class="num">23.0</span><span class="st">低估</span></td>
+                <td class="start">20100630</td>
+              </tr>
+            
+
+              <tr class="row-正常">
+                <td class="metric">市净率PB</td>
+                <td class="cur">5.20</td>
+                <td class="cell 正常"><span class="num">54.2</span><span class="st">正常</span></td><td class="cell 正常"><span class="num">57.6</span><span class="st">正常</span></td><td class="cell 正常"><span class="num">60.9</span><span class="st">正常</span></td><td class="cell na">—</td><td class="cell 正常"><span class="num">61.6</span><span class="st">正常</span></td>
+                <td class="start">20100630</td>
+              </tr>
+            
+
+              <tr class="row-低估">
+                <td class="metric">市销率PS</td>
+                <td class="cur">1.66</td>
+                <td class="cell 正常"><span class="num">43.4</span><span class="st">正常</span></td><td class="cell 低估"><span class="num">29.9</span><span class="st">低估</span></td><td class="cell 低估"><span class="num">20.4</span><span class="st">低估</span></td><td class="cell na">—</td><td class="cell 低估"><span class="num">19.8</span><span class="st">低估</span></td>
+                <td class="start">20100630</td>
+              </tr>
+            
+
+              <tr class="row-低估">
+                <td class="metric">股息率</td>
+                <td class="cur">1.00%</td>
+                <td class="cell 正常"><span class="num">65.8</span><span class="st">正常</span></td><td class="cell 低估"><span class="num">81.7</span><span class="st">低估</span></td><td class="cell 低估"><span class="num">81.2</span><span class="st">低估</span></td><td class="cell na">—</td><td class="cell 低估"><span class="num">81.8</span><span class="st">低估</span></td>
+                <td class="start">20100630</td>
+              </tr>
+            
+
+            </tbody>
+          </table>
+          </div>
+        </div>
+        
+
+  <div class="foot">
+    数据来源：Tushare &nbsp;·&nbsp; 估值口径：整体法（成分股市值 ÷ 财务合计）<br>
+    窗口：5年 / 10年 / 15年 / 20年 + 全历史 &nbsp;·&nbsp; 市值采用 <b>不复权</b> 口径<br>
+    仅供参考，不构成投资建议。
+  </div>
+</div>
 </body>
 </html>
