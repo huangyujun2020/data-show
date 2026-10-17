@@ -3,14 +3,74 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>指数估值百分位</title>
+<title>指数估值百分位 - 不犹豫的成长书房</title>
 <style>
   :root{--bg:#0f1115;--card:#171a21;--line:#2a2f3a;--txt:#e6e8ee;--sub:#9aa3b2;--low:#22c55e;--mid:#f59e0b;--high:#ef4444;}
   *{box-sizing:border-box;}
-  body{margin:0;padding:24px 16px 60px;background:var(--bg);color:var(--txt);
-    font-family:"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;-webkit-font-smoothing:antialiased;}
+  body{margin:0;padding:0 16px 60px;background:var(--bg);color:var(--txt);
+    font-family:"Inter","Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;-webkit-font-smoothing:antialiased;}
   .wrap{max-width:1400px;margin:0 auto;}
-  h1{font-size:22px;margin:0 0 6px;}
+  
+  /* ============================================================
+     ★ 新增：宣传头图 (Hero Banner) 样式
+     ============================================================ */
+  .hero-banner {
+    position: relative;
+    width: 100%;
+    padding: 40px 20px 30px;
+    margin-bottom: 30px;
+    background: linear-gradient(135deg, rgba(74, 4, 4, 0.8) 0%, rgba(26, 0, 0, 0.9) 100%);
+    border-bottom: 1px solid rgba(255, 215, 0, 0.15);
+    border-bottom-left-radius: 24px;
+    border-bottom-right-radius: 24px;
+    text-align: center;
+    overflow: hidden;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  }
+  /* 头图背景的光晕特效 */
+  .hero-banner::before {
+    content: ''; position: absolute; width: 600px; height: 600px;
+    background: radial-gradient(circle, rgba(255, 215, 0, 0.1) 0%, rgba(0,0,0,0) 65%);
+    top: -200px; right: -100px; border-radius: 50%; z-index: 0;
+  }
+  .hero-banner::after {
+    content: ''; position: absolute; width: 500px; height: 500px;
+    background: radial-gradient(circle, rgba(239, 68, 68, 0.15) 0%, rgba(0,0,0,0) 70%);
+    bottom: -150px; left: -100px; border-radius: 50%; z-index: 0;
+  }
+  
+  .hero-badge {
+    position: relative; z-index: 10; display: inline-block;
+    padding: 4px 16px; background: rgba(255, 215, 0, 0.1); color: #fde047;
+    border-radius: 20px; font-size: 12px; font-weight: bold; letter-spacing: 2px;
+    border: 1px solid rgba(255, 215, 0, 0.3); margin-bottom: 16px;
+  }
+  .hero-title-box {
+    position: relative; z-index: 10; display: flex; justify-content: center; align-items: center;
+    gap: 12px; margin-bottom: 10px;
+  }
+  .hero-emoji { font-size: 36px; filter: drop-shadow(0 0 15px rgba(253, 224, 71, 0.4)); }
+  .hero-title {
+    font-size: 32px; font-weight: 900; margin: 0; line-height: 1.2;
+    background: linear-gradient(to right, #fdfbfb 0%, #fde047 50%, #f59e0b 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .hero-subtitle { position: relative; z-index: 10; color: #fca5a5; font-size: 15px; margin: 0 0 20px 0; letter-spacing: 1px; }
+  
+  .hero-link {
+    position: relative; z-index: 10; display: inline-block; padding: 10px 24px;
+    background: rgba(0, 0, 0, 0.4); border: 1.5px solid #fde047; border-radius: 8px;
+    color: #fde047; font-size: 16px; font-weight: bold; text-decoration: none;
+    transition: all 0.3s ease; box-shadow: 0 0 15px rgba(253, 224, 71, 0.15);
+  }
+  .hero-link:hover { background: rgba(253, 224, 71, 0.1); box-shadow: 0 0 25px rgba(253, 224, 71, 0.3); transform: translateY(-2px); }
+  
+  .hero-footer { position: relative; z-index: 10; margin-top: 24px; color: #52525b; font-size: 12px; letter-spacing: 1px; font-weight: 500; }
+
+  /* ============================================================
+     原页面样式 (微调以适配头部)
+     ============================================================ */
+  h1.page-title{font-size:22px;margin:0 0 6px;}
   .desc{color:var(--sub);font-size:13px;margin-bottom:8px;line-height:1.6;}
   .legend{display:flex;gap:18px;flex-wrap:wrap;font-size:13px;color:var(--sub);margin-bottom:28px;}
   .legend span::before{content:"●";margin-right:6px;}
@@ -44,12 +104,9 @@
   th:first-child,td:first-child{text-align:left;}
   tbody tr:hover{background:rgba(255,255,255,.03);}
   td.cur{font-weight:700;color:#f8fafc;background:rgba(248,250,252,.04);}
-  
-  /* 优化排版：调整主数值和官方对比小字的行高 */
   td.cur .val{display:block; font-size:14px; line-height:1.4;}
   td.cur .official-pe{display:block; font-size:11px; color:#64748b; font-weight:normal; margin-top:2px; line-height:1.2;}
   td.cur .text-warning{color:#f59e0b !important; font-weight:bold;}
-  
   td.metric{color:#cbd5e1;font-weight:500;}
   .cell{padding:10px 10px;font-variant-numeric:tabular-nums;}
   .cell .num{margin-right:4px;}
@@ -64,6 +121,8 @@
   .foot{text-align:center;color:var(--sub);font-size:12px;margin-top:30px;line-height:1.7;}
   .foot b{color:#cbd5e1;}
   @media (max-width:760px){
+    .hero-title { font-size: 24px; }
+    .hero-emoji { font-size: 28px; }
     th,td{padding:9px 8px;font-size:12px;}
     .card-head{font-size:16px;}
     .cell .st{display:inline-block;min-width:28px;}
@@ -71,8 +130,23 @@
 </style>
 </head>
 <body>
+
 <div class="wrap">
-  <h1>📊 指数估值百分位</h1>
+  
+  <!-- ★ 嵌入的宣传头图 -->
+  <div class="hero-banner">
+    <div class="hero-badge">DATA-DRIVEN VALUATION</div>
+    <div class="hero-title-box">
+      <div class="hero-emoji">📊</div>
+      <h1 class="hero-title">你的专属指数估值专家</h1>
+    </div>
+    <p class="hero-subtitle">历史百分位 × 官方口径对比 × 全景基本面</p>
+    <a href="https://data-show.pages.dev/" class="hero-link" target="_blank">https://data-show.pages.dev/</a>
+    <div class="hero-footer">Powered by 不犹豫的成长书房</div>
+  </div>
+
+  <!-- 原有内容区 -->
+  <h1 class="page-title">📈 指数估值全景数据</h1>
   <div class="desc">
     百分位 = 当前估值在历史窗口中处于较低位置的比例。<b>越低越便宜</b>。<br>
     极端值已剔除（PE-TTM/PE-静态≤200 · PS-TTM/PS-静态≤30 · PB≤10 · 股息率≤10%），不参与排序与统计。<br>
@@ -80,11 +154,14 @@
       * 官方口径：PE1 使用总股本加权，PE2 使用计算用股本加权；DP1/DP2 同理。官方均为静态口径，本系统当前值为 TTM 滚动口径，存在细微差异属正常现象（偏差>15%将以<span style="color:#f59e0b;font-weight:bold;">橙色</span>提示）。
     </span>
   </div>
+  
   <div class="legend">
     <span class="l-low">低估（≤30%，PE/PS/PB 越便宜；股息率越高越便宜）</span>
     <span class="l-mid">正常（30%–70%）</span>
     <span class="l-high">高估（≥70%）</span>
   </div>
+  
+  <!-- 数据卡片区 -->
   
         <details class="card" data-code="000985.CSI" open>
           <summary class="card-head">
@@ -97,7 +174,7 @@
             <span>有效起点：<b>20110831</b></span>
             <span class="sep">|</span>
             <span>日期：<b>20261016</b></span>
-            <span class="updated">生成于 2026-10-17 14:10:54</span>
+            <span class="updated">生成于 2026-10-17 14:44:52</span>
           </div>
         
 <div class="charts">
@@ -175,7 +252,7 @@
             <span>有效起点：<b>20050429</b></span>
             <span class="sep">|</span>
             <span>日期：<b>20261016</b></span>
-            <span class="updated">生成于 2026-10-17 14:10:55</span>
+            <span class="updated">生成于 2026-10-17 14:44:52</span>
           </div>
         
 <div class="charts">
@@ -253,7 +330,7 @@
             <span>有效起点：<b>20070115</b></span>
             <span class="sep">|</span>
             <span>日期：<b>20261016</b></span>
-            <span class="updated">生成于 2026-10-17 14:10:55</span>
+            <span class="updated">生成于 2026-10-17 14:44:52</span>
           </div>
         
 <div class="charts">
@@ -331,7 +408,7 @@
             <span>有效起点：<b>20070115</b></span>
             <span class="sep">|</span>
             <span>日期：<b>20261016</b></span>
-            <span class="updated">生成于 2026-10-17 14:10:55</span>
+            <span class="updated">生成于 2026-10-17 14:44:52</span>
           </div>
         
 <div class="charts">
@@ -409,7 +486,7 @@
             <span>有效起点：<b>20141031</b></span>
             <span class="sep">|</span>
             <span>日期：<b>20261016</b></span>
-            <span class="updated">生成于 2026-10-17 14:10:55</span>
+            <span class="updated">生成于 2026-10-17 14:44:52</span>
           </div>
         
 <div class="charts">
@@ -487,7 +564,7 @@
             <span>有效起点：<b>20080530</b></span>
             <span class="sep">|</span>
             <span>日期：<b>20261016</b></span>
-            <span class="updated">生成于 2026-10-17 14:10:55</span>
+            <span class="updated">生成于 2026-10-17 14:44:52</span>
           </div>
         
 <div class="charts">
@@ -565,7 +642,7 @@
             <span>有效起点：<b>20090430</b></span>
             <span class="sep">|</span>
             <span>日期：<b>20261016</b></span>
-            <span class="updated">生成于 2026-10-17 14:10:55</span>
+            <span class="updated">生成于 2026-10-17 14:44:52</span>
           </div>
         
 <div class="charts">
@@ -643,7 +720,7 @@
             <span>有效起点：<b>20100630</b></span>
             <span class="sep">|</span>
             <span>日期：<b>20261016</b></span>
-            <span class="updated">生成于 2026-10-17 14:10:55</span>
+            <span class="updated">生成于 2026-10-17 14:44:52</span>
           </div>
         
 <div class="charts">
@@ -721,7 +798,7 @@
             <span>有效起点：<b>20200731</b></span>
             <span class="sep">|</span>
             <span>日期：<b>20261016</b></span>
-            <span class="updated">生成于 2026-10-17 14:10:55</span>
+            <span class="updated">生成于 2026-10-17 14:44:52</span>
           </div>
         
 <div class="charts">
@@ -787,11 +864,13 @@
 <tr class="row-高估"><td class="metric">市销率PS-TTM</td><td class="cur"><span class="val">9.92</span></td><td class="bound">5.34</td><td class="bound">9.26</td><td class="bound">2.93</td><td class="bound">16.26</td><td class="cell 高估"><span class="num">89.7</span><span class="st">高估</span></td><td class="cell na">—</td><td class="cell na">—</td><td class="cell na">—</td><td class="cell 高估"><span class="num">78.8</span><span class="st">高估</span></td></tr>
 <tr class="row-高估"><td class="metric">市销率PS-静态</td><td class="cur"><span class="val">9.89</span></td><td class="bound">5.07</td><td class="bound">9.51</td><td class="bound">2.76</td><td class="bound">15.30</td><td class="cell 高估"><span class="num">88.6</span><span class="st">高估</span></td><td class="cell na">—</td><td class="cell na">—</td><td class="cell na">—</td><td class="cell 高估"><span class="num">74.1</span><span class="st">高估</span></td></tr>
 </tbody></table></div></details>
+  
   <div class="foot">
     数据来源：Tushare &amp; AKShare &nbsp;·&nbsp; 估值口径：整体法（成分股市值 ÷ 财务合计）<br>
     窗口：5年 / 10年 / 15年 / 20年 + 全历史 &nbsp;·&nbsp; 市值采用 <b>不复权</b> 口径<br>
     仅供参考，不构成投资建议。
   </div>
+  
 </div>
 </body>
 </html>
