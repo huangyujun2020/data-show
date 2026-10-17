@@ -44,8 +44,11 @@
   th:first-child,td:first-child{text-align:left;}
   tbody tr:hover{background:rgba(255,255,255,.03);}
   td.cur{font-weight:700;color:#f8fafc;background:rgba(248,250,252,.04);}
-  td.cur .val{display:block; font-size:14px;}
-  td.cur .official-pe{display:block; font-size:11px; color:#64748b; font-weight:normal; margin-top:2px;}
+  
+  /* 优化排版：调整主数值和官方对比小字的行高 */
+  td.cur .val{display:block; font-size:14px; line-height:1.4;}
+  td.cur .official-pe{display:block; font-size:11px; color:#64748b; font-weight:normal; margin-top:2px; line-height:1.2;}
+  td.cur .text-warning{color:#f59e0b !important; font-weight:bold;}
   
   td.metric{color:#cbd5e1;font-weight:500;}
   .cell{padding:10px 10px;font-variant-numeric:tabular-nums;}
@@ -74,7 +77,7 @@
     百分位 = 当前估值在历史窗口中处于较低位置的比例。<b>越低越便宜</b>。<br>
     极端值已剔除（PE-TTM/PE-静态≤200 · PS-TTM/PS-静态≤30 · PB≤10 · 股息率≤10%），不参与排序与统计。<br>
     <span style="color:#94a3b8; font-size:12px; margin-top:4px; display:inline-block;">
-      * 官方口径：PE1 使用总股本加权，PE2 使用计算用股本加权；DP1/DP2 同理。官方均为静态口径，本系统当前值为 TTM 滚动口径，存在细微差异属正常现象。
+      * 官方口径：PE1 使用总股本加权，PE2 使用计算用股本加权；DP1/DP2 同理。官方均为静态口径，本系统当前值为 TTM 滚动口径，存在细微差异属正常现象（偏差>15%将以<span style="color:#f59e0b;font-weight:bold;">橙色</span>提示）。
     </span>
   </div>
   <div class="legend">
@@ -94,7 +97,7 @@
             <span>有效起点：<b>20110831</b></span>
             <span class="sep">|</span>
             <span>日期：<b>20261016</b></span>
-            <span class="updated">生成于 2026-10-17 13:38:43</span>
+            <span class="updated">生成于 2026-10-17 14:10:54</span>
           </div>
         
 <div class="charts">
@@ -172,7 +175,7 @@
             <span>有效起点：<b>20050429</b></span>
             <span class="sep">|</span>
             <span>日期：<b>20261016</b></span>
-            <span class="updated">生成于 2026-10-17 13:38:43</span>
+            <span class="updated">生成于 2026-10-17 14:10:55</span>
           </div>
         
 <div class="charts">
@@ -250,7 +253,7 @@
             <span>有效起点：<b>20070115</b></span>
             <span class="sep">|</span>
             <span>日期：<b>20261016</b></span>
-            <span class="updated">生成于 2026-10-17 13:38:43</span>
+            <span class="updated">生成于 2026-10-17 14:10:55</span>
           </div>
         
 <div class="charts">
@@ -328,7 +331,7 @@
             <span>有效起点：<b>20070115</b></span>
             <span class="sep">|</span>
             <span>日期：<b>20261016</b></span>
-            <span class="updated">生成于 2026-10-17 13:38:43</span>
+            <span class="updated">生成于 2026-10-17 14:10:55</span>
           </div>
         
 <div class="charts">
@@ -406,7 +409,7 @@
             <span>有效起点：<b>20141031</b></span>
             <span class="sep">|</span>
             <span>日期：<b>20261016</b></span>
-            <span class="updated">生成于 2026-10-17 13:38:43</span>
+            <span class="updated">生成于 2026-10-17 14:10:55</span>
           </div>
         
 <div class="charts">
@@ -484,7 +487,7 @@
             <span>有效起点：<b>20080530</b></span>
             <span class="sep">|</span>
             <span>日期：<b>20261016</b></span>
-            <span class="updated">生成于 2026-10-17 13:38:43</span>
+            <span class="updated">生成于 2026-10-17 14:10:55</span>
           </div>
         
 <div class="charts">
@@ -562,7 +565,7 @@
             <span>有效起点：<b>20090430</b></span>
             <span class="sep">|</span>
             <span>日期：<b>20261016</b></span>
-            <span class="updated">生成于 2026-10-17 13:38:43</span>
+            <span class="updated">生成于 2026-10-17 14:10:55</span>
           </div>
         
 <div class="charts">
@@ -640,7 +643,7 @@
             <span>有效起点：<b>20100630</b></span>
             <span class="sep">|</span>
             <span>日期：<b>20261016</b></span>
-            <span class="updated">生成于 2026-10-17 13:38:43</span>
+            <span class="updated">生成于 2026-10-17 14:10:55</span>
           </div>
         
 <div class="charts">
@@ -718,7 +721,7 @@
             <span>有效起点：<b>20200731</b></span>
             <span class="sep">|</span>
             <span>日期：<b>20261016</b></span>
-            <span class="updated">生成于 2026-10-17 13:38:43</span>
+            <span class="updated">生成于 2026-10-17 14:10:55</span>
           </div>
         
 <div class="charts">
@@ -777,7 +780,7 @@
             <thead><tr><th>指标</th><th>当前值</th><th>30%分位值</th><th>70%分位值</th><th>历史最低</th><th>历史最高</th><th>5年(%)</th><th>10年(%)</th><th>15年(%)</th><th>20年(%)</th><th>全历史(%)</th></tr></thead>
             <tbody>
         
-<tr class="row-正常"><td class="metric">市盈率PE-TTM</td><td class="cur"><span class="val">66.08</span><br><span class="official-pe">(官方 PE1:88.96 / PE2:91.12)</span></td><td class="bound">36.49</td><td class="bound">74.96</td><td class="bound">26.80</td><td class="bound">128.50</td><td class="cell 高估"><span class="num">72.3</span><span class="st">高估</span></td><td class="cell na">—</td><td class="cell na">—</td><td class="cell na">—</td><td class="cell 正常"><span class="num">60.2</span><span class="st">正常</span></td></tr>
+<tr class="row-正常"><td class="metric">市盈率PE-TTM</td><td class="cur"><span class="val">66.08</span><br><span class="official-pe text-warning">(官方 PE1:88.96 / PE2:91.12)</span></td><td class="bound">36.49</td><td class="bound">74.96</td><td class="bound">26.80</td><td class="bound">128.50</td><td class="cell 高估"><span class="num">72.3</span><span class="st">高估</span></td><td class="cell na">—</td><td class="cell na">—</td><td class="cell na">—</td><td class="cell 正常"><span class="num">60.2</span><span class="st">正常</span></td></tr>
 <tr class="row-高估"><td class="metric">市盈率PE-静态</td><td class="cur"><span class="val">95.06</span></td><td class="bound">41.57</td><td class="bound">79.08</td><td class="bound">28.46</td><td class="bound">149.85</td><td class="cell 高估"><span class="num">90.2</span><span class="st">高估</span></td><td class="cell na">—</td><td class="cell na">—</td><td class="cell na">—</td><td class="cell 高估"><span class="num">86.8</span><span class="st">高估</span></td></tr>
 <tr class="row-正常"><td class="metric">市净率PB</td><td class="cur"><span class="val">6.64</span></td><td class="bound">4.44</td><td class="bound">6.73</td><td class="bound">2.91</td><td class="bound">9.82</td><td class="cell 高估"><span class="num">76.9</span><span class="st">高估</span></td><td class="cell na">—</td><td class="cell na">—</td><td class="cell na">—</td><td class="cell 正常"><span class="num">67.4</span><span class="st">正常</span></td></tr>
 <tr class="row-低估"><td class="metric">股息率</td><td class="cur"><span class="val">0.25%</span><br><span class="official-pe">(官方 DP1:0.29% / DP2:0.30%)</span></td><td class="bound">0.33%</td><td class="bound">0.59%</td><td class="bound">0.16%</td><td class="bound">0.94%</td><td class="cell 低估"><span class="num">7.3</span><span class="st">低估</span></td><td class="cell na">—</td><td class="cell na">—</td><td class="cell na">—</td><td class="cell 低估"><span class="num">6.6</span><span class="st">低估</span></td></tr>
